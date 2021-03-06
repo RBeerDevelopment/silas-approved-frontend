@@ -1,4 +1,4 @@
-package com.example.examplerealtime;
+package beer.robin.silasapproved;
 
 import android.os.Bundle;
 import io.flutter.app.FlutterActivity;

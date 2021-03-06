@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'home.dart';
+import 'home-2.dart';
 
 List<CameraDescription> cameras;
 

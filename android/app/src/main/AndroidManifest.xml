@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.examplerealtime">
+    package="beer.robin.silasapproved">
 
     <!-- The INTERNET permission is required for development. Specifically,
          flutter needs it to communicate with the running application
@@ -16,6 +16,10 @@
         android:name="io.flutter.app.FlutterApplication"
         android:label="flutter_realtime_detection"
         android:icon="@mipmap/ic_launcher">
+
+        <meta-data android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyBY-iq2QJKjIlJ1tO23Dp58-ATwg44JkAk"/>
+
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTop"

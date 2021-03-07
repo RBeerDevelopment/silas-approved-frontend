@@ -10,7 +10,7 @@ description: A new Flutter project.
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.0.0-dev.68.0 <3.0.0"
+  sdk: ">=2.2.2 <3.0.0"
 
 dependencies:
   flutter:
@@ -26,7 +26,8 @@ dependencies:
 
   google_maps_flutter: ^2.0.1
 
-  location: ^4.0.0
+  location: ^4.0.2
+  location_permissions: ^3.0.0
 
 dev_dependencies:
   flutter_test:

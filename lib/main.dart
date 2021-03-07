@@ -6,7 +6,9 @@ import 'home-2.dart';
 List<CameraDescription> cameras;
 
 Future<Null> main() async {
+
   WidgetsFlutterBinding.ensureInitialized();
+
   try {
     cameras = await availableCameras();
   } on CameraException catch (e) {
@@ -21,7 +23,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Silas Approved',
       theme: ThemeData(
-        brightness: Brightness.dark,
+        brightness: Brightness.light,
       ),
       home: HomePage(cameras),
     );

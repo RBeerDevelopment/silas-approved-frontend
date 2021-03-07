@@ -11,8 +11,9 @@ class Camera extends StatefulWidget {
   final List<CameraDescription> cameras;
   final Callback setRecognitions;
   final String model;
+  final Function returnPicture;
 
-  Camera(this.cameras, this.model, this.setRecognitions);
+  Camera(this.cameras, this.model, this.setRecognitions, this.returnPicture);
 
   @override
   _CameraState createState() => new _CameraState();
@@ -22,6 +23,9 @@ class _CameraState extends State<Camera> {
   CameraController controller;
   bool isDetecting = false;
 
+  bool stickerDetected = false;
+  var numberOfDetections = 0;
+
   @override
   void initState() {
     super.initState();
@@ -30,7 +34,7 @@ class _CameraState extends State<Camera> {
       print('No camera is found');
     } else {
       controller = new CameraController(
-        widget.cameras[0],
+        widget.cameras.first,
         ResolutionPreset.high,
       );
       controller.initialize().then((_) {
@@ -44,60 +48,34 @@ class _CameraState extends State<Camera> {
             isDetecting = true;
 
             int startTime = new DateTime.now().millisecondsSinceEpoch;
+            Tflite.detectObjectOnFrame(
+              bytesList: img.planes.map((plane) {
+                return plane.bytes;
+              }).toList(),
+              model: "SSDMobileNet",
+              imageHeight: img.height,
+              imageWidth: img.width,
+              imageMean: 255,
+              imageStd: 255,
+              numResultsPerClass: 1,
+              threshold: 0.8,
+            ).then((recognitions) {
+              int endTime = new DateTime.now().millisecondsSinceEpoch;
+              print("Detection took ${endTime - startTime}");
 
-            if (widget.model == mobilenet) {
-              Tflite.runModelOnFrame(
-                bytesList: img.planes.map((plane) {
-                  return plane.bytes;
-                }).toList(),
-                imageHeight: img.height,
-                imageWidth: img.width,
-                numResults: 2,
-              ).then((recognitions) {
-                int endTime = new DateTime.now().millisecondsSinceEpoch;
-                print("Detection took ${endTime - startTime}");
+              widget.setRecognitions(recognitions, img.height, img.width);
 
-                widget.setRecognitions(recognitions, img.height, img.width);
-
-                isDetecting = false;
-              });
-            } else if (widget.model == posenet) {
-              Tflite.runPoseNetOnFrame(
-                bytesList: img.planes.map((plane) {
-                  return plane.bytes;
-                }).toList(),
-                imageHeight: img.height,
-                imageWidth: img.width,
-                numResults: 2,
-              ).then((recognitions) {
-                int endTime = new DateTime.now().millisecondsSinceEpoch;
-                print("Detection took ${endTime - startTime}");
-
-                widget.setRecognitions(recognitions, img.height, img.width);
-
-                isDetecting = false;
-              });
-            } else {
-              Tflite.detectObjectOnFrame(
-                bytesList: img.planes.map((plane) {
-                  return plane.bytes;
-                }).toList(),
-                model: widget.model == yolo ? "YOLO" : "SSDMobileNet",
-                imageHeight: img.height,
-                imageWidth: img.width,
-                imageMean: widget.model == yolo ? 0 : 127.5,
-                imageStd: widget.model == yolo ? 255.0 : 127.5,
-                numResultsPerClass: 1,
-                threshold: widget.model == yolo ? 0.2 : 0.4,
-              ).then((recognitions) {
-                int endTime = new DateTime.now().millisecondsSinceEpoch;
-                print("Detection took ${endTime - startTime}");
-
-                widget.setRecognitions(recognitions, img.height, img.width);
-
-                isDetecting = false;
-              });
-            }
+              if (recognitions.length > 0) {
+                numberOfDetections++;
+                if (numberOfDetections >= 5) {
+                  stickerDetected = true;
+                  controller.stopImageStream();
+                  // hide recognition bounds
+                  widget.setRecognitions([], img.height, img.width);
+                }
+              }
+              isDetecting = false;
+            });
           }
         });
       });
@@ -126,11 +104,44 @@ class _CameraState extends State<Camera> {
     var previewRatio = previewH / previewW;
 
     return OverflowBox(
-      maxHeight:
-          screenRatio > previewRatio ? screenH : screenW / previewW * previewH,
-      maxWidth:
-          screenRatio > previewRatio ? screenH / previewH * previewW : screenW,
-      child: CameraPreview(controller),
-    );
+        maxHeight: screenRatio > previewRatio
+            ? screenH
+            : screenW / previewW * previewH,
+        maxWidth: screenRatio > previewRatio
+            ? screenH / previewH * previewW
+            : screenW,
+        child: Stack(
+          children: [
+            CameraPreview(controller),
+            Align(
+              child: Row(
+                children: <Widget>[
+                  ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Cancel')),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if(stickerDetected) {
+                        final image = await controller.takePicture();
+                        widget.returnPicture(image);
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    child: const Text('Take'),
+                    style: ButtonStyle(
+                        backgroundColor: (stickerDetected
+                            ? MaterialStateProperty.all<Color>(Colors.blue)
+                            : MaterialStateProperty.all<Color>(
+                                Colors.blueGrey))),
+                  )
+                ],
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+              ),
+              alignment: Alignment(0, .7),
+            )
+          ],
+        ));
   }
 }

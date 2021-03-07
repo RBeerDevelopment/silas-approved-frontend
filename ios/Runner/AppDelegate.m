@@ -1,6 +1,8 @@
 #include "AppDelegate.h"
 #include "GeneratedPluginRegistrant.h"
 
+@import GoogleMaps;
+
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication *)application

@@ -3,15 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_realtime_detection/addStickerDialog.dart';
+import 'package:flutter_realtime_detection/graphqlHandler.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:location_permissions/location_permissions.dart';
-import 'package:tflite/tflite.dart';
-import 'dart:math' as math;
-
-import 'camera.dart';
-import 'bndbox.dart';
-import 'models.dart';
 
 class HomePage extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -28,32 +23,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
   }
 
-  static const data = [
-    {
-      "id": "abc",
-      "coordinates": {"lat": 48.1351, "long": 11.5820},
-      "imgUrl": "abcde.de",
-      "creator": "Robin",
-      "createdAt": "2020-03-21",
-      "stickerType": "original"
-    },
-    {
-      "id": "def",
-      "coordinates": {"lat": 47.1351, "long": 12.5820},
-      "imgUrl": "abcde.de",
-      "creator": "Robin",
-      "createdAt": "2020-03-21",
-      "stickerType": "original"
-    },
-    {
-      "id": "ghi",
-      "coordinates": {"lat": 48.1351, "long": 10.5820},
-      "imgUrl": "abcde.de",
-      "creator": "Robin",
-      "createdAt": "2020-03-21",
-      "stickerType": "original"
-    }
-  ];
+  var _data = [];
 
   Completer<GoogleMapController> _controller = Completer();
 
@@ -66,18 +36,46 @@ class _HomePageState extends State<HomePage> {
     LocationData loc = await _location.getLocation();
     _cntlr.animateCamera(
       CameraUpdate.newCameraPosition(
-        CameraPosition(target: LatLng(loc.latitude, loc.longitude), zoom: 15),
+        CameraPosition(target: LatLng(loc.latitude, loc.longitude), zoom: 7),
       ),
     );
+
+    _fetchStickers();
   }
 
-  void _addMarker() {
-    var markerIdVal = math.Random.secure().nextInt(200).toString();
+  void _fetchStickers() async {
+    _data = await GraphQLHandler.getAllStickerLocations(() {});
+    debugPrint(_data.toString());
+    _updateMarkers();
+  }
 
-    final Set<Marker> newMarkers = data.map((item) {
-      return Marker(markerId: MarkerId(item['id']), position: LatLng((item['coordinates'] as Map)['lat'], (item['coordinates'] as Map)['long']),
-          infoWindow: InfoWindow(title: item['creator'], snippet: '*')
-      );
+  void _updateMarkers() {
+    debugPrint('updateMakers called');
+    final Set<Marker> newMarkers = _data.map((sticker) {
+      Map location = sticker['location'];
+      debugPrint(location.toString());
+      return Marker(
+          markerId: MarkerId(sticker['id']),
+          position: LatLng(location['lat'], location['lng']),
+          onTap: () {
+            showDialog(
+                context: context,
+                builder: (_) => AlertDialog(
+                      title: Text(sticker['name']),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text('Creator: ${sticker['createdBy']['name']}'),
+                          Image.network(
+                            sticker['imageUrl'],
+                            height: 200,
+                            width: 200,
+                            fit: BoxFit.fitWidth,
+                          )
+                        ],
+                      ),
+                    ));
+          });
     }).toSet();
 
     setState(() {
@@ -87,12 +85,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   _showAddStickerDialog() {
-    showDialog(context: context, builder: (_) =>
-      AlertDialog(
-        title: Text('Add Sticker'),
-        content: AddStickerDialog(widget.cameras),
-      )
-    );
+    showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+              title: Text('Add Sticker'),
+              content: AddStickerDialog(widget.cameras),
+            ));
   }
 
   @override
@@ -101,6 +99,15 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('Silas Approved'),
         backgroundColor: Colors.blue.shade900,
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh Stickers',
+            onPressed: () {
+              _fetchStickers();
+            },
+          ),
+        ],
       ),
       body: GoogleMap(
         mapType: MapType.normal,
@@ -114,6 +121,7 @@ class _HomePageState extends State<HomePage> {
         tiltGesturesEnabled: false,
         rotateGesturesEnabled: false,
         myLocationEnabled: true,
+        myLocationButtonEnabled: false,
         markers: markers,
       ),
       floatingActionButton: FloatingActionButton(

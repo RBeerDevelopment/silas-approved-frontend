@@ -4,6 +4,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
 import 'takeImage.dart';
+import 'graphqlHandler.dart';
+import 'package:location/location.dart';
 
 class AddStickerDialog extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -16,17 +18,20 @@ class AddStickerDialog extends StatefulWidget {
 
 class _AddStickerDialogState extends State<AddStickerDialog> {
   TextEditingController _nameController;
+  TextEditingController _creatorController;
   String _imagePath = "";
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController();
+    _creatorController = TextEditingController();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _creatorController.dispose();
     super.dispose();
   }
 
@@ -45,10 +50,20 @@ class _AddStickerDialogState extends State<AddStickerDialog> {
         ),
         controller: _nameController,
       ),
+      TextField(
+        decoration: InputDecoration(
+          labelText: 'Creator Name',
+        ),
+        controller: _creatorController,
+      ),
       if (_imagePath != "")
-        Image.file(
-          File(_imagePath),
-          height: 500,
+        Padding(
+          padding: EdgeInsets.all(12),
+          child: Image.file(
+            File(_imagePath),
+            height: 300,
+            fit: BoxFit.fitHeight,
+          ),
         ),
       ElevatedButton(
         onPressed: () {
@@ -71,7 +86,17 @@ class _AddStickerDialogState extends State<AddStickerDialog> {
           ),
           TextButton(
             child: Text('Ok'),
-            onPressed: () {
+            onPressed: () async {
+              Location _location = Location();
+              LocationData loc = await _location.getLocation();
+
+              GraphQLHandler.postSticker(
+                  context: context,
+                  name: _nameController.text,
+                  lat: loc.latitude,
+                  lng: loc.longitude,
+                  creatorName: _creatorController.text,
+                  stickerImage: File(_imagePath));
               Navigator.of(context).pop();
             },
           ),

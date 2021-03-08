@@ -124,6 +124,7 @@ class _CameraState extends State<Camera> {
                   ElevatedButton(
                     onPressed: () async {
                       if(stickerDetected) {
+
                         final image = await controller.takePicture();
                         widget.returnPicture(image);
                         Navigator.of(context).pop();

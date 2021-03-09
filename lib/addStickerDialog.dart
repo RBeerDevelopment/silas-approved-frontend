@@ -17,21 +17,20 @@ class AddStickerDialog extends StatefulWidget {
 }
 
 class _AddStickerDialogState extends State<AddStickerDialog> {
+
+  GraphQLHandler graphQLHandler = GraphQLHandler();
   TextEditingController _nameController;
-  TextEditingController _creatorController;
   String _imagePath = "";
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController();
-    _creatorController = TextEditingController();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _creatorController.dispose();
     super.dispose();
   }
 
@@ -49,12 +48,6 @@ class _AddStickerDialogState extends State<AddStickerDialog> {
           labelText: 'Location Name',
         ),
         controller: _nameController,
-      ),
-      TextField(
-        decoration: InputDecoration(
-          labelText: 'Creator Name',
-        ),
-        controller: _creatorController,
       ),
       if (_imagePath != "")
         Padding(
@@ -90,12 +83,11 @@ class _AddStickerDialogState extends State<AddStickerDialog> {
               Location _location = Location();
               LocationData loc = await _location.getLocation();
 
-              GraphQLHandler.postSticker(
+              graphQLHandler.postSticker(
                   context: context,
                   name: _nameController.text,
                   lat: loc.latitude,
                   lng: loc.longitude,
-                  creatorName: _creatorController.text,
                   stickerImage: File(_imagePath));
               Navigator.of(context).pop();
             },

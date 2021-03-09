@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter_realtime_detection/signInDialog.dart';
 import 'package:flutter_realtime_detection/addStickerDialog.dart';
 import 'package:flutter_realtime_detection/graphqlHandler.dart';
+import 'package:flutter_realtime_detection/stickerDetailDialog.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:location_permissions/location_permissions.dart';
@@ -24,19 +26,28 @@ class _HomePageState extends State<HomePage> {
   }
 
   var _data = [];
+  Location _location;
+  LocationData _myLocation;
 
   Completer<GoogleMapController> _controller = Completer();
 
   LatLng _initialcameraposition = LatLng(20.5937, 78.9629);
   Set<Marker> markers = new Set(); // CLASS MEMBER, MAP OF MARKS
 
-  Future<void> _onMapCreated(GoogleMapController _cntlr) async {
+  Future<Null> _setupLocation() async {
     await LocationPermissions().requestPermissions();
-    Location _location = Location();
-    LocationData loc = await _location.getLocation();
+    _location = Location();
+    _myLocation = await _location.getLocation();
+  }
+
+
+  Future<void> _onMapCreated(GoogleMapController _cntlr) async {
+
+    await _setupLocation();
+
     _cntlr.animateCamera(
       CameraUpdate.newCameraPosition(
-        CameraPosition(target: LatLng(loc.latitude, loc.longitude), zoom: 7),
+        CameraPosition(target: LatLng(_myLocation.latitude, _myLocation.longitude), zoom: 7),
       ),
     );
 
@@ -44,37 +55,29 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _fetchStickers() async {
-    _data = await GraphQLHandler.getAllStickerLocations(() {});
-    debugPrint(_data.toString());
+    GraphQLHandler graphQLHandler = GraphQLHandler();
+
+    // todo remove this
+    await Future.delayed(Duration(seconds: 1));
+
+    _data = await graphQLHandler.getAllStickerLocations();
     _updateMarkers();
   }
 
   void _updateMarkers() {
-    debugPrint('updateMakers called');
+
     final Set<Marker> newMarkers = _data.map((sticker) {
-      Map location = sticker['location'];
-      debugPrint(location.toString());
       return Marker(
           markerId: MarkerId(sticker['id']),
-          position: LatLng(location['lat'], location['lng']),
+          position: LatLng(sticker['location']['lat'], sticker['location']['lng']),
           onTap: () {
             showDialog(
                 context: context,
-                builder: (_) => AlertDialog(
-                      title: Text(sticker['name']),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Text('Creator: ${sticker['createdBy']['name']}'),
-                          Image.network(
-                            sticker['imageUrl'],
-                            height: 200,
-                            width: 200,
-                            fit: BoxFit.fitWidth,
-                          )
-                        ],
-                      ),
-                    ));
+                builder:  (_) => AlertDialog(
+                  title: Text('Sign In / Sign Up'),
+                  content: StickerDetailDialog(sticker, _location),
+                )
+            );
           });
     }).toSet();
 
@@ -93,6 +96,16 @@ class _HomePageState extends State<HomePage> {
             ));
   }
 
+  _showSignInDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Sign In / Sign Up'),
+        content: SignInDialog(),
+      )
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
@@ -101,12 +114,19 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.blue.shade900,
         actions: <Widget>[
           IconButton(
+            icon: const Icon(Icons.account_circle_outlined),
+            tooltip: 'Account',
+            onPressed: () {
+              _showSignInDialog();
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh Stickers',
             onPressed: () {
               _fetchStickers();
             },
-          ),
+          )
         ],
       ),
       body: GoogleMap(

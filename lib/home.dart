@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:flutter_realtime_detection/signInDialog.dart';
+import 'package:flutter_realtime_detection/accountDialog.dart';
 import 'package:flutter_realtime_detection/addStickerDialog.dart';
 import 'package:flutter_realtime_detection/graphqlHandler.dart';
 import 'package:flutter_realtime_detection/stickerDetailDialog.dart';
@@ -101,7 +101,7 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (_) => AlertDialog(
         title: Text('Sign In / Sign Up'),
-        content: SignInDialog(),
+        content: AccountDialog(),
       )
     );
   }

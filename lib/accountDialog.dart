@@ -4,14 +4,14 @@ import 'graphqlHandler.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-class SignInDialog extends StatefulWidget {
-  SignInDialog();
+class AccountDialog extends StatefulWidget {
+  AccountDialog();
 
   @override
-  _SignInDialogState createState() => new _SignInDialogState();
+  _AccountDialogState createState() => new _AccountDialogState();
 }
 
-class _SignInDialogState extends State<SignInDialog> {
+class _AccountDialogState extends State<AccountDialog> {
   GraphQLHandler graphQLHandler = GraphQLHandler();
   SharedPreferences _prefs;
   String _prefsTokenKey = "graphqlToken";
@@ -98,7 +98,18 @@ class _SignInDialogState extends State<SignInDialog> {
         )
       ], mainAxisSize: MainAxisSize.min);
     } else {
-      return Text('Already logged in');
+      return  Column(children: <Widget>[
+        Text('Already logged in'),
+        TextButton(
+          child: Text('Sign Out'),
+          onPressed: () {
+            _prefs.remove(_prefsTokenKey);
+            setState(() {
+              _token = '';
+            });
+          },
+        )
+      ], mainAxisSize: MainAxisSize.min);
     }
   }
 

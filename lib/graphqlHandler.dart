@@ -1,12 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'user.dart';
 
 class GraphQLHandler {
   HttpLink _httpLink;
@@ -15,6 +13,9 @@ class GraphQLHandler {
   SharedPreferences _prefs;
   String _token = "";
   String _prefsTokenKey = "graphqlToken";
+
+  static const String devUrl = 'https://silas-approved-dev.herokuapp.com/graphql';
+  static const String prodUrl = 'https://silas-approved.herokuapp.com/graphql';
 
 
   // instance for singleton
@@ -38,13 +39,13 @@ class GraphQLHandler {
 
     if (_token.isNotEmpty) {
       this._httpLink = HttpLink(
-          'https://silas-approved-dev.herokuapp.com/graphql',
+          kReleaseMode ? prodUrl : devUrl,
           defaultHeaders: <String, String>{
             'Authorization': 'Bearer $_token',
           });
     } else {
       this._httpLink = HttpLink(
-        'https://silas-approved-dev.herokuapp.com/graphql',
+        kReleaseMode ? prodUrl : devUrl,
       );
     }
 

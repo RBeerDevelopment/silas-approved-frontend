@@ -4,7 +4,7 @@ import 'package:tflite/tflite.dart';
 import 'dart:math' as math;
 
 import 'camera.dart';
-import 'bndbox.dart';
+import '../bndbox.dart';
 
 class TakeImage extends StatefulWidget {
   final List<CameraDescription> cameras;

@@ -2,13 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:flutter_realtime_detection/accountDialog.dart';
-import 'package:flutter_realtime_detection/addStickerDialog.dart';
+import 'package:flutter_realtime_detection/account/accountDialog.dart';
+import 'package:flutter_realtime_detection/addsticker/addStickerDialog.dart';
 import 'package:flutter_realtime_detection/graphqlHandler.dart';
-import 'package:flutter_realtime_detection/stickerDetailDialog.dart';
+import 'package:flutter_realtime_detection/stickerdetail/stickerDetailDialog.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:location_permissions/location_permissions.dart';
+import 'package:provider/provider.dart';
+
+import 'user.dart';
 
 class HomePage extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -24,6 +27,10 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
   }
+
+  GraphQLHandler _graphQLHandler = GraphQLHandler();
+
+  Map<String, dynamic> _user;
 
   var _data = [];
   Location _location;
@@ -55,13 +62,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _fetchStickers() async {
-    GraphQLHandler graphQLHandler = GraphQLHandler();
-
-    // todo remove this
-    await Future.delayed(Duration(seconds: 1));
-
-    _data = await graphQLHandler.getAllStickerLocations();
+    _data = await _graphQLHandler.getAllStickerLocations();
     _updateMarkers();
+  }
+
+  void scannedSticker(String id, String name) {
+    final snackBar = SnackBar(content: Text('Sticker $name scanned.', style: TextStyle(color: Colors.white),), backgroundColor: Colors.blue);
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    _graphQLHandler.scanSticker(id);
   }
 
   void _updateMarkers() {
@@ -74,8 +82,8 @@ class _HomePageState extends State<HomePage> {
             showDialog(
                 context: context,
                 builder:  (_) => AlertDialog(
-                  title: Text('Sign In / Sign Up'),
-                  content: StickerDetailDialog(sticker, _location),
+                  title: Text(sticker['name']),
+                  content: StickerDetailDialog(sticker, _location, widget.cameras, scannedSticker),
                 )
             );
           });
@@ -100,7 +108,7 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Sign In / Sign Up'),
+        title: (_user == null || _user.isEmpty) ? const Text('Account') : Text(_user['name']),
         content: AccountDialog(),
       )
     );
@@ -108,6 +116,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+
+    _user = Provider.of<User>(context).getUser();
+
     return new Scaffold(
       appBar: AppBar(
         title: const Text('Silas Approved'),

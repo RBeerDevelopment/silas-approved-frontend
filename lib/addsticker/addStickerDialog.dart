@@ -4,7 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
 import 'takeImage.dart';
-import 'graphqlHandler.dart';
+import '../graphqlHandler.dart';
 import 'package:location/location.dart';
 
 class AddStickerDialog extends StatefulWidget {
@@ -58,7 +58,7 @@ class _AddStickerDialogState extends State<AddStickerDialog> {
             fit: BoxFit.fitHeight,
           ),
         ),
-      ElevatedButton(
+      ElevatedButton.icon(
         onPressed: () {
           Navigator.push(
               context,
@@ -66,7 +66,8 @@ class _AddStickerDialogState extends State<AddStickerDialog> {
                   builder: (context) =>
                       TakeImage(widget.cameras, _returnPicture)));
         },
-        child: const Text('Take Picture'),
+        label: const Text('Take Picture'),
+        icon: const Icon(Icons.camera_alt_outlined)
       ),
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,

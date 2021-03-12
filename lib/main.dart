@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:provider/provider.dart';
 import 'home.dart';
+import 'user.dart';
 
 List<CameraDescription> cameras;
 
 Future<Null> main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
@@ -20,12 +21,16 @@ Future<Null> main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Silas Approved',
-      theme: ThemeData(
-        brightness: Brightness.light,
-      ),
-      home: HomePage(cameras),
-    );
+    return MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: User()),
+        ],
+        child: MaterialApp(
+          title: 'Silas Approved',
+          theme: ThemeData(
+            brightness: Brightness.light,
+          ),
+          home: HomePage(cameras),
+        ));
   }
 }

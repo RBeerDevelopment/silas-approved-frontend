@@ -1,9 +1,12 @@
 import 'dart:io';
-import 'package:flutter/material.dart' as ui;
+import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'user.dart';
 
 class GraphQLHandler {
   HttpLink _httpLink;
@@ -13,24 +16,32 @@ class GraphQLHandler {
   String _token = "";
   String _prefsTokenKey = "graphqlToken";
 
-  GraphQLHandler() {
+
+  // instance for singleton
+  static final GraphQLHandler _instance = GraphQLHandler._privateConstructor();
+
+  factory GraphQLHandler() {
+    return _instance;
+  }
+
+  // actual (private) constructor
+  GraphQLHandler._privateConstructor() {
     _setup();
   }
 
   _setup() async {
     await _setupPrefs();
 
-    if(_prefs.containsKey(_prefsTokenKey)) {
+    if (_prefs.containsKey(_prefsTokenKey)) {
       this._token = _prefs.getString(_prefsTokenKey);
     }
 
-    if(_token.isNotEmpty) {
+    if (_token.isNotEmpty) {
       this._httpLink = HttpLink(
           'https://silas-approved-dev.herokuapp.com/graphql',
           defaultHeaders: <String, String>{
             'Authorization': 'Bearer $_token',
-          }
-      );
+          });
     } else {
       this._httpLink = HttpLink(
         'https://silas-approved-dev.herokuapp.com/graphql',
@@ -39,7 +50,6 @@ class GraphQLHandler {
 
     this._client = GraphQLClient(
         link: this._httpLink, cache: GraphQLCache(store: InMemoryStore()));
-
   }
 
   _setupPrefs() async {
@@ -50,7 +60,7 @@ class GraphQLHandler {
   }
 
   Future<bool> postSticker(
-      {ui.BuildContext context,
+      {BuildContext context,
       String name,
       double lat,
       double lng,
@@ -79,16 +89,41 @@ class GraphQLHandler {
     );
 
     var results = await _client.mutate(opts);
-    ui.debugPrint(results.toString());
+    debugPrint(results.toString());
 
     return true;
   }
 
-  Future<Null> login(String email, String password) async {
+  Future<List> getCollectedStickerList() async {
+    String allStickersQuery = """
+      query collectedStickers() {
+        collectedStickers {
+          name
+        }
+      }
+      """;
+
+    var opts = QueryOptions(document: gql(allStickersQuery));
+    var results = await _client.query(opts);
+    if (!results.hasException) {
+      var collectedStickers = results.data['collectedStickers'];
+      var stickerNameList = [];
+      collectedStickers.forEach((sticker) => stickerNameList.add(sticker['name']));
+      return stickerNameList.cast<String>();
+    } else {
+      throw Exception('error fetching data');
+    }
+  }
+
+  Future<Map<String, dynamic>> login(String email, String password) async {
     const loginMutation = r"""
       mutation ($email: String!, $password: String!) { 
-        signup(email: $email, password: $password) {
+        login(email: $email, password: $password) {
           token
+          user {
+            name
+            email
+          }
         }
       }
     """;
@@ -99,19 +134,28 @@ class GraphQLHandler {
     );
 
     var results = await _client.mutate(opts);
+    debugPrint(results.toString());
 
-    if(!results.hasException) {
-      _token = results.data['login']['token'];
+    if (!results.hasException) {
+      var data = results.data['login'];
+      _token = data['token'];
       _prefs.setString(_prefsTokenKey, _token);
-    }
 
+      return data['user'];
+    } else {
+      return null;
+    }
   }
 
-  Future<Null> signUp(String email, String password, String name) async {
+  Future<Map<String, dynamic>> signUp(String email, String password, String name) async {
     const loginMutation = r"""
       mutation ($email: String!, $password: String!, $name: String!) { 
         signup(email: $email, password: $password, name: $name) {
           token
+          user {
+            name
+            email
+          }
         }
       }
     """;
@@ -123,14 +167,39 @@ class GraphQLHandler {
 
     var results = await _client.mutate(opts);
 
-    ui.debugPrint(results.toString());
+    debugPrint(results.toString());
 
-    if(!results.hasException) {
-      _token = results.data['signup']['token'];
+    if (!results.hasException) {
+      var data = results.data['login'];
+      _token = data['token'];
       _prefs.setString(_prefsTokenKey, _token);
-    }
 
-    ui.debugPrint(results.toString());
+      return data['user'];
+    } else {
+      return null;
+    }
+  }
+
+  Future<Null> scanSticker(String id) async {
+    const loginMutation = r"""
+      mutation ($stickerId: ID!) { 
+        scan(stickerId: $stickerId) {
+          name
+          collectedStickers {
+            name
+          }
+        }
+      }
+    """;
+
+    var opts = MutationOptions(
+      document: gql(loginMutation),
+      variables: {"stickerId": int.parse(id)},
+    );
+
+    var results = await _client.mutate(opts);
+
+    debugPrint(results.toString());
   }
 
   Future<List<dynamic>> getAllStickerLocations() async {
@@ -139,12 +208,12 @@ class GraphQLHandler {
         stickers {
           id
           name
-          createdBy {
-            name
-          }
           location {
             lat
             lng
+          }
+          createdBy {
+            name
           }
           imageUrl
         }
@@ -152,8 +221,12 @@ class GraphQLHandler {
     """;
 
     var opts = QueryOptions(document: gql(allStickersQuery));
+    final stopwatch = Stopwatch()..start();
     var results = await _client.query(opts);
-    ui.debugPrint(results.toString());
+    print('doSomething() executed in ${stopwatch.elapsed}');
+
+
+    debugPrint(results.toString());
     if (!results.hasException) {
       return results.data['stickers'];
     } else {

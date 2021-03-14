@@ -47,14 +47,27 @@ class _HomePageState extends State<HomePage> {
     _myLocation = await _location.getLocation();
   }
 
+  _showSnackbarWithText(String text,
+      {Color backgroundColor = Colors.pink}) {
+    final snackBar = SnackBar(
+      content: Text(
+        text,
+        style: TextStyle(fontSize: 16),
+      ),
+      duration: const Duration(seconds: 3),
+      backgroundColor: backgroundColor,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
 
   Future<void> _onMapCreated(GoogleMapController _cntlr) async {
-
     await _setupLocation();
 
     _cntlr.animateCamera(
       CameraUpdate.newCameraPosition(
-        CameraPosition(target: LatLng(_myLocation.latitude, _myLocation.longitude), zoom: 7),
+        CameraPosition(
+            target: LatLng(_myLocation.latitude, _myLocation.longitude),
+            zoom: 7),
       ),
     );
 
@@ -66,26 +79,30 @@ class _HomePageState extends State<HomePage> {
     _updateMarkers();
   }
 
-  void scannedSticker(String id, String name) {
-    final snackBar = SnackBar(content: Text('Sticker $name scanned.', style: TextStyle(color: Colors.white),), backgroundColor: Colors.blue);
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    _graphQLHandler.scanSticker(id);
+  void scannedSticker(String id, String name) async {
+    bool success = await _graphQLHandler.scanSticker(id);
+    if (success) {
+      _showSnackbarWithText('Sticker $name scanned.');
+    } else {
+      _showSnackbarWithText('Error scanning $name.',
+          backgroundColor: Colors.red);
+    }
   }
 
   void _updateMarkers() {
-
     final Set<Marker> newMarkers = _data.map((sticker) {
       return Marker(
           markerId: MarkerId(sticker['id']),
-          position: LatLng(sticker['location']['lat'], sticker['location']['lng']),
+          position:
+              LatLng(sticker['location']['lat'], sticker['location']['lng']),
           onTap: () {
             showDialog(
                 context: context,
-                builder:  (_) => AlertDialog(
-                  title: Text(sticker['name']),
-                  content: StickerDetailDialog(sticker, _location, widget.cameras, scannedSticker),
-                )
-            );
+                builder: (_) => AlertDialog(
+                      title: Text(sticker['name']),
+                      content: StickerDetailDialog(
+                          sticker, _location, widget.cameras, scannedSticker, _showSnackbarWithText),
+                    ));
           });
     }).toSet();
 
@@ -100,29 +117,28 @@ class _HomePageState extends State<HomePage> {
         context: context,
         builder: (_) => AlertDialog(
               title: Text('Add Sticker'),
-              content: AddStickerDialog(widget.cameras),
+              content: AddStickerDialog(widget.cameras, _showSnackbarWithText),
             ));
   }
 
   _showSignInDialog() {
     showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: (_user == null || _user.isEmpty) ? const Text('Account') : Text(_user['name']),
-        content: AccountDialog(),
-      )
-    );
+        context: context,
+        builder: (_) => AlertDialog(
+              title: (_user == null || _user.isEmpty)
+                  ? const Text('Account')
+                  : Text(_user['name']),
+              content: AccountDialog(_showSnackbarWithText),
+            ));
   }
 
   @override
   Widget build(BuildContext context) {
-
     _user = Provider.of<User>(context).getUser();
 
     return new Scaffold(
       appBar: AppBar(
         title: const Text('Silas Approved'),
-        backgroundColor: Colors.blue.shade900,
         actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.account_circle_outlined),
@@ -156,10 +172,8 @@ class _HomePageState extends State<HomePage> {
         markers: markers,
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _showAddStickerDialog();
-        },
-        backgroundColor: Colors.blue.shade500,
+        onPressed: _showAddStickerDialog,
+        // backgroundColor: Colors.blue.shade500,
         child: Icon(Icons.add_a_photo),
       ),
     );

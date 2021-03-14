@@ -11,8 +11,10 @@ class StickerDetailDialog extends StatefulWidget {
   final List<CameraDescription> cameras;
   final Function scannedSticker;
 
+  final Function(String text, { Color backgroundColor }) showSnackbar;
+
   StickerDetailDialog(
-      this.sticker, this.location, this.cameras, this.scannedSticker);
+      this.sticker, this.location, this.cameras, this.scannedSticker, this.showSnackbar);
 
   @override
   _StickerDetailDialogState createState() => new _StickerDetailDialogState();
@@ -70,7 +72,7 @@ class _StickerDetailDialogState extends State<StickerDetailDialog> {
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                child: const Text('Cancel')),
+                child: const Text('Close')),
             if (_isInRange)
               ElevatedButton.icon(
                 onPressed: () {

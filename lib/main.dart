@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter_realtime_detection/locator.dart';
 import 'package:provider/provider.dart';
 import 'home.dart';
 import 'user.dart';
@@ -9,7 +10,7 @@ List<CameraDescription> cameras;
 
 Future<Null> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await setupLocator();
   try {
     cameras = await availableCameras();
   } on CameraException catch (e) {
@@ -28,7 +29,10 @@ class MyApp extends StatelessWidget {
         child: MaterialApp(
           title: 'Silas Approved',
           theme: ThemeData(
+            primaryColor: Colors.teal,
             brightness: Brightness.light,
+            accentColor: Colors.pinkAccent,
+            buttonColor: Colors.pinkAccent,
           ),
           home: HomePage(cameras),
         ));

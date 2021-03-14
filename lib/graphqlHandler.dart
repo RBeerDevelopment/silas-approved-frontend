@@ -4,15 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import 'localStorageHandler.dart';
+import 'locator.dart';
 
 class GraphQLHandler {
   HttpLink _httpLink;
   GraphQLClient _client;
 
-  SharedPreferences _prefs;
   String _token = "";
-  String _prefsTokenKey = "graphqlToken";
+
+  var _localStorageHandler = locator<LocalStorageHandler>();
 
   static const String devUrl = 'https://silas-approved-dev.herokuapp.com/graphql';
   static const String prodUrl = 'https://silas-approved.herokuapp.com/graphql';
@@ -31,13 +33,10 @@ class GraphQLHandler {
   }
 
   _setup() async {
-    await _setupPrefs();
 
-    if (_prefs.containsKey(_prefsTokenKey)) {
-      this._token = _prefs.getString(_prefsTokenKey);
-    }
+    _token = _localStorageHandler.token;
 
-    if (_token.isNotEmpty) {
+    if (_token != null && _token.isNotEmpty) {
       this._httpLink = HttpLink(
           kReleaseMode ? prodUrl : devUrl,
           defaultHeaders: <String, String>{
@@ -51,13 +50,6 @@ class GraphQLHandler {
 
     this._client = GraphQLClient(
         link: this._httpLink, cache: GraphQLCache(store: InMemoryStore()));
-  }
-
-  _setupPrefs() async {
-    _prefs = await SharedPreferences.getInstance();
-    if (_prefs.containsKey(_prefsTokenKey)) {
-      _token = _prefs.getString(_prefsTokenKey);
-    }
   }
 
   Future<bool> postSticker(
@@ -92,7 +84,7 @@ class GraphQLHandler {
     var results = await _client.mutate(opts);
     debugPrint(results.toString());
 
-    return true;
+    return !results.hasException;
   }
 
   Future<List> getCollectedStickerList() async {
@@ -106,13 +98,15 @@ class GraphQLHandler {
 
     var opts = QueryOptions(document: gql(allStickersQuery));
     var results = await _client.query(opts);
+    debugPrint("RESULT");
+    debugPrint(results.toString());
     if (!results.hasException) {
       var collectedStickers = results.data['collectedStickers'];
       var stickerNameList = [];
       collectedStickers.forEach((sticker) => stickerNameList.add(sticker['name']));
       return stickerNameList.cast<String>();
     } else {
-      throw Exception('error fetching data');
+      return const <String>[];
     }
   }
 
@@ -135,16 +129,18 @@ class GraphQLHandler {
     );
 
     var results = await _client.mutate(opts);
-    debugPrint(results.toString());
+    debugPrint("LOGIN RESULTS" + results.toString());
 
     if (!results.hasException) {
       var data = results.data['login'];
+      debugPrint("Data" + data.toString());
+      debugPrint("Token" + data['token']);
       _token = data['token'];
-      _prefs.setString(_prefsTokenKey, _token);
+      _localStorageHandler.token =  _token;
 
       return data['user'];
     } else {
-      return null;
+      return const {};
     }
   }
 
@@ -173,15 +169,15 @@ class GraphQLHandler {
     if (!results.hasException) {
       var data = results.data['login'];
       _token = data['token'];
-      _prefs.setString(_prefsTokenKey, _token);
+      _localStorageHandler.token =  _token;
 
       return data['user'];
     } else {
-      return null;
+      return const {};
     }
   }
 
-  Future<Null> scanSticker(String id) async {
+  Future<bool> scanSticker(String id) async {
     const loginMutation = r"""
       mutation ($stickerId: ID!) { 
         scan(stickerId: $stickerId) {
@@ -198,9 +194,10 @@ class GraphQLHandler {
       variables: {"stickerId": int.parse(id)},
     );
 
-    var results = await _client.mutate(opts);
+    var result = await _client.mutate(opts);
+    print(result.data.toString());
 
-    debugPrint(results.toString());
+    return !result.hasException;
   }
 
   Future<List<dynamic>> getAllStickerLocations() async {
@@ -231,7 +228,7 @@ class GraphQLHandler {
     if (!results.hasException) {
       return results.data['stickers'];
     } else {
-      throw Exception('error fetching data');
+      return const [];
     }
   }
 }

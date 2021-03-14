@@ -6,10 +6,15 @@ import '../graphqlHandler.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../localStorageHandler.dart';
+import '../locator.dart';
 import '../user.dart';
 
 class AccountDialog extends StatefulWidget {
-  AccountDialog();
+
+  final Function(String text, { Color backgroundColor }) showSnackbar;
+
+  AccountDialog(this.showSnackbar);
 
   @override
   _AccountDialogState createState() => new _AccountDialogState();
@@ -17,13 +22,12 @@ class AccountDialog extends StatefulWidget {
 
 class _AccountDialogState extends State<AccountDialog> {
   GraphQLHandler graphQLHandler = GraphQLHandler();
-  SharedPreferences _prefs;
-  String _prefsTokenKey = "graphqlToken";
-  String _token = "";
   TextEditingController _emailController, _passwordController, _nameController;
 
   bool _isLoading = false;
   List<String> _collectedStickers;
+
+  var localStorageHandler = locator<LocalStorageHandler>();
 
   @override
   void initState() {
@@ -31,8 +35,6 @@ class _AccountDialogState extends State<AccountDialog> {
     _emailController = TextEditingController();
     _passwordController = TextEditingController();
     _nameController = TextEditingController();
-
-    _setupPrefs();
 
     _setupCollectedStickers();
   }
@@ -47,16 +49,14 @@ class _AccountDialogState extends State<AccountDialog> {
     });
   }
 
-  _setupPrefs() async {
-    _prefs = await SharedPreferences.getInstance();
-    if (_prefs.containsKey(_prefsTokenKey)) {
-      setState(() {
-        _token = _prefs.getString(_prefsTokenKey);
-      });
-      debugPrint("Token: " + _token);
+  _handleUserResult(Map<String, dynamic> user, BuildContext context) {
+    if(user.isNotEmpty) {
+      Provider.of<User>(context, listen: false).setUser(user);
+      widget.showSnackbar("Logged in successfully.");
     } else {
-      debugPrint("No token");
+      widget.showSnackbar("Login failed.", backgroundColor: Colors.red);
     }
+    Navigator.of(context).pop();
   }
 
   @override
@@ -123,8 +123,7 @@ class _AccountDialogState extends State<AccountDialog> {
                       _emailController.text,
                       _passwordController.text,
                       _nameController.text);
-                  Provider.of<User>(context, listen: false).setUser(user);
-                  Navigator.of(context).pop();
+                  _handleUserResult(user, context);
                 },
               ),
               TextButton(
@@ -135,8 +134,7 @@ class _AccountDialogState extends State<AccountDialog> {
                   });
                   Map<String, dynamic> user = await graphQLHandler.login(
                       _emailController.text, _passwordController.text);
-                  Provider.of<User>(context, listen: false).setUser(user);
-                  Navigator.of(context).pop();
+                  _handleUserResult(user, context);
                 },
               ),
             ],
@@ -149,10 +147,12 @@ class _AccountDialogState extends State<AccountDialog> {
         TextButton(
           child: Text('Sign Out'),
           onPressed: () {
-            _prefs.remove(_prefsTokenKey);
-            setState(() {
-              _token = '';
-            });
+            localStorageHandler.removeToken();
+            
+            Provider.of<User>(context).setUser({});
+
+            widget.showSnackbar("Logged out.");
+            Navigator.of(context).pop();
           },
         )
       ], mainAxisSize: MainAxisSize.min);

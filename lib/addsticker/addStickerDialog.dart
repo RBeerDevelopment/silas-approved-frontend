@@ -9,8 +9,9 @@ import 'package:location/location.dart';
 
 class AddStickerDialog extends StatefulWidget {
   final List<CameraDescription> cameras;
+  final Function(String text, { Color backgroundColor }) showSnackbar;
 
-  AddStickerDialog(this.cameras);
+  AddStickerDialog(this.cameras, this.showSnackbar);
 
   @override
   _AddStickerDialogState createState() => new _AddStickerDialogState();
@@ -67,7 +68,7 @@ class _AddStickerDialogState extends State<AddStickerDialog> {
                       TakeImage(widget.cameras, _returnPicture)));
         },
         label: const Text('Take Picture'),
-        icon: const Icon(Icons.camera_alt_outlined)
+        icon: const Icon(Icons.camera_alt_outlined),
       ),
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -84,12 +85,17 @@ class _AddStickerDialogState extends State<AddStickerDialog> {
               Location _location = Location();
               LocationData loc = await _location.getLocation();
 
-              graphQLHandler.postSticker(
+              bool result = await graphQLHandler.postSticker(
                   context: context,
                   name: _nameController.text,
                   lat: loc.latitude,
                   lng: loc.longitude,
                   stickerImage: File(_imagePath));
+              if(result) {
+                widget.showSnackbar('Posted sticker (reload to show).');
+              } else {
+                widget.showSnackbar('Error posting sticker.', backgroundColor: Colors.red);
+              }
               Navigator.of(context).pop();
             },
           ),

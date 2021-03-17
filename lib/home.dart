@@ -9,9 +9,6 @@ import 'package:flutter_realtime_detection/stickerdetail/stickerDetailDialog.dar
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:location_permissions/location_permissions.dart';
-import 'package:provider/provider.dart';
-
-import 'user.dart';
 
 class HomePage extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -30,8 +27,6 @@ class _HomePageState extends State<HomePage> {
 
   GraphQLHandler _graphQLHandler = GraphQLHandler();
 
-  Map<String, dynamic> _user;
-
   var _data = [];
   Location _location;
   LocationData _myLocation;
@@ -39,7 +34,7 @@ class _HomePageState extends State<HomePage> {
   Completer<GoogleMapController> _controller = Completer();
 
   LatLng _initialcameraposition = LatLng(20.5937, 78.9629);
-  Set<Marker> markers = new Set(); // CLASS MEMBER, MAP OF MARKS
+  Set<Marker> _markers = new Set(); // CLASS MEMBER, MAP OF MARKS
 
   Future<Null> _setupLocation() async {
     await LocationPermissions().requestPermissions();
@@ -76,9 +71,21 @@ class _HomePageState extends State<HomePage> {
 
   void _fetchStickers() async {
     _data = await _graphQLHandler.getAllStickerLocations();
-    _updateMarkers();
+    _setupMarkers();
+    // subscribe to new sticker creations
+    _graphQLHandler.subscribeToStickers(_addStickerToMap);
   }
 
+  void _addStickerToMap(Map<String, dynamic> sticker) {
+    print("add sticker called with");
+    print(sticker);
+
+    Marker newMarker = _createMarker(sticker);
+    setState(() {
+      _markers.add(newMarker);
+    });
+  }
+  
   void scannedSticker(String id, String name) async {
     bool success = await _graphQLHandler.scanSticker(id);
     if (success) {
@@ -88,27 +95,31 @@ class _HomePageState extends State<HomePage> {
           backgroundColor: Colors.red);
     }
   }
+  
+  Marker _createMarker(Map<String, dynamic> sticker) {
+    return Marker(
+        markerId: MarkerId(sticker['id']),
+        position:
+        LatLng(sticker['location']['lat'].toDouble(), sticker['location']['lng'].toDouble()),
+        onTap: () {
+          showDialog(
+              context: context,
+              builder: (_) => AlertDialog(
+                title: Text(sticker['name']),
+                content: StickerDetailDialog(
+                    sticker, _location, widget.cameras, scannedSticker, _showSnackbarWithText),
+              ));
+        });
+  }
 
-  void _updateMarkers() {
+  void _setupMarkers() {
     final Set<Marker> newMarkers = _data.map((sticker) {
-      return Marker(
-          markerId: MarkerId(sticker['id']),
-          position:
-              LatLng(sticker['location']['lat'], sticker['location']['lng']),
-          onTap: () {
-            showDialog(
-                context: context,
-                builder: (_) => AlertDialog(
-                      title: Text(sticker['name']),
-                      content: StickerDetailDialog(
-                          sticker, _location, widget.cameras, scannedSticker, _showSnackbarWithText),
-                    ));
-          });
+      return _createMarker(sticker);
     }).toSet();
 
     setState(() {
       // adding a new marker to map
-      markers = newMarkers;
+      _markers = newMarkers;
     });
   }
 
@@ -121,20 +132,16 @@ class _HomePageState extends State<HomePage> {
             ));
   }
 
-  _showSignInDialog() {
+  _showAccountDialog() {
     showDialog(
         context: context,
-        builder: (_) => AlertDialog(
-              title: (_user == null || _user.isEmpty)
-                  ? const Text('Account')
-                  : Text(_user['name']),
-              content: AccountDialog(_showSnackbarWithText),
+        builder: (_) => Dialog(
+              child: AccountDialog(_showSnackbarWithText),
             ));
   }
 
   @override
   Widget build(BuildContext context) {
-    _user = Provider.of<User>(context).getUser();
 
     return new Scaffold(
       appBar: AppBar(
@@ -144,7 +151,7 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.account_circle_outlined),
             tooltip: 'Account',
             onPressed: () {
-              _showSignInDialog();
+              _showAccountDialog();
             },
           ),
           IconButton(
@@ -169,7 +176,7 @@ class _HomePageState extends State<HomePage> {
         rotateGesturesEnabled: false,
         myLocationEnabled: true,
         myLocationButtonEnabled: false,
-        markers: markers,
+        markers: _markers,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddStickerDialog,

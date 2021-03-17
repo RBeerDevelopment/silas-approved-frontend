@@ -9,16 +9,19 @@ import 'localStorageHandler.dart';
 import 'locator.dart';
 
 class GraphQLHandler {
-  HttpLink _httpLink;
   GraphQLClient _client;
 
   String _token = "";
 
   var _localStorageHandler = locator<LocalStorageHandler>();
 
-  static const String devUrl = 'https://silas-approved-dev.herokuapp.com/graphql';
+  static const String devUrl =
+      'https://silas-approved-dev.herokuapp.com/graphql';
   static const String prodUrl = 'https://silas-approved.herokuapp.com/graphql';
 
+  static const String devUrWs = 'wss://silas-approved-dev.herokuapp.com/graphql';
+
+  static const String prodUrlWs = 'wss://silas-approved.herokuapp.com/graphql';
 
   // instance for singleton
   static final GraphQLHandler _instance = GraphQLHandler._privateConstructor();
@@ -33,23 +36,35 @@ class GraphQLHandler {
   }
 
   _setup() async {
-
     _token = _localStorageHandler.token;
 
+    final _httpLink = HttpLink(
+      kReleaseMode ? prodUrl : devUrl,
+    );
+
+    // this._httpLink = HttpLink(
+    //     kReleaseMode ? prodUrl : devUrl,
+    //     defaultHeaders: <String, String>{
+    //       'Authorization': 'Bearer $_token',
+    //     });
+
+    final _wsLink = WebSocketLink(kReleaseMode ? prodUrlWs : devUrWs);
+
+    Link _link;
     if (_token != null && _token.isNotEmpty) {
-      this._httpLink = HttpLink(
-          kReleaseMode ? prodUrl : devUrl,
-          defaultHeaders: <String, String>{
-            'Authorization': 'Bearer $_token',
-          });
-    } else {
-      this._httpLink = HttpLink(
-        kReleaseMode ? prodUrl : devUrl,
+      final _authLink = AuthLink(
+        getToken: () async => 'Bearer $_token',
       );
+
+      _link = _authLink.concat(_httpLink);
+    } else {
+      _link = _httpLink;
     }
 
-    this._client = GraphQLClient(
-        link: this._httpLink, cache: GraphQLCache(store: InMemoryStore()));
+    _link = Link.split((request) => request.isSubscription, _wsLink, _link);
+
+    this._client =
+        GraphQLClient(link: _link, cache: GraphQLCache(store: InMemoryStore()));
   }
 
   Future<bool> postSticker(
@@ -103,7 +118,8 @@ class GraphQLHandler {
     if (!results.hasException) {
       var collectedStickers = results.data['collectedStickers'];
       var stickerNameList = [];
-      collectedStickers.forEach((sticker) => stickerNameList.add(sticker['name']));
+      collectedStickers
+          .forEach((sticker) => stickerNameList.add(sticker['name']));
       return stickerNameList.cast<String>();
     } else {
       return const <String>[];
@@ -136,7 +152,7 @@ class GraphQLHandler {
       debugPrint("Data" + data.toString());
       debugPrint("Token" + data['token']);
       _token = data['token'];
-      _localStorageHandler.token =  _token;
+      _localStorageHandler.token = _token;
 
       return data['user'];
     } else {
@@ -144,7 +160,8 @@ class GraphQLHandler {
     }
   }
 
-  Future<Map<String, dynamic>> signUp(String email, String password, String name) async {
+  Future<Map<String, dynamic>> signUp(
+      String email, String password, String name) async {
     const loginMutation = r"""
       mutation ($email: String!, $password: String!, $name: String!) { 
         signup(email: $email, password: $password, name: $name) {
@@ -169,7 +186,7 @@ class GraphQLHandler {
     if (!results.hasException) {
       var data = results.data['login'];
       _token = data['token'];
-      _localStorageHandler.token =  _token;
+      _localStorageHandler.token = _token;
 
       return data['user'];
     } else {
@@ -223,12 +240,47 @@ class GraphQLHandler {
     var results = await _client.query(opts);
     print('doSomething() executed in ${stopwatch.elapsed}');
 
-
     debugPrint(results.toString());
     if (!results.hasException) {
       return results.data['stickers'];
     } else {
       return const [];
     }
+  }
+
+  void subscribeToStickers(Function(Map<String, dynamic>) callback) async {
+    print("Subscribe to Stickers called");
+
+    String stickerSubscription = """
+      subscription {
+        newSticker {
+          id
+          name
+          location {
+            lat
+            lng
+          }
+          createdBy {
+            name
+          }
+          imageUrl
+        }
+      }
+    """;
+
+    Stream<QueryResult> subscription = _client
+        .subscribe(SubscriptionOptions(document: gql(stickerSubscription)));
+    subscription.listen(
+      (event) {
+        print(event.data['newSticker']);
+        callback(event.data['newSticker']);
+      },
+      onError: (t) {
+        print("ON ERROR");
+      },
+      onDone: () {
+        print("onDONE");
+      },
+    );
   }
 }

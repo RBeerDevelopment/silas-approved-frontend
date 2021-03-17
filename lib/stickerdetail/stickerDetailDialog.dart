@@ -11,10 +11,10 @@ class StickerDetailDialog extends StatefulWidget {
   final List<CameraDescription> cameras;
   final Function scannedSticker;
 
-  final Function(String text, { Color backgroundColor }) showSnackbar;
+  final Function(String text, {Color backgroundColor}) showSnackbar;
 
-  StickerDetailDialog(
-      this.sticker, this.location, this.cameras, this.scannedSticker, this.showSnackbar);
+  StickerDetailDialog(this.sticker, this.location, this.cameras,
+      this.scannedSticker, this.showSnackbar);
 
   @override
   _StickerDetailDialogState createState() => new _StickerDetailDialogState();
@@ -66,28 +66,29 @@ class _StickerDetailDialogState extends State<StickerDetailDialog> {
               : Image.asset('assets/silas-approved.png',
                   height: 200, width: 200, fit: BoxFit.fitWidth),
         ),
-        Row(
-          children: [
-            TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Close')),
-            if (_isInRange)
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              Scanner(widget.cameras, stickerRecognized)));
-                },
-                label: const Text('Scan'),
-                icon: const Icon(Icons.qr_code_scanner),
-              )
-          ],
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-        )
+        // ElevatedButton.icon(
+        //     onPressed: () {
+        //       print("${widget.sticker['location']['lat']}, ${widget.sticker['location']['lng']}");
+        //       MapsLauncher.launchCoordinates(widget.sticker['location']['lat'], widget.sticker['location']['lng']);
+        //     },
+        //     icon: const Icon(Icons.map_rounded),
+        //     label: Text('Open in Maps')),
+        ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          Scanner(widget.cameras, stickerRecognized)));
+            },
+            label: const Text('Scan'),
+            icon: const Icon(Icons.qr_code_scanner),
+        ),
+        TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('Close')),
       ],
     );
   }

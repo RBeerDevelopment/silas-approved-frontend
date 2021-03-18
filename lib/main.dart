@@ -35,6 +35,7 @@ class MyApp extends StatelessWidget {
             buttonColor: Colors.pinkAccent,
           ),
           home: HomePage(cameras),
+          debugShowCheckedModeBanner: false,
         ));
   }
 }

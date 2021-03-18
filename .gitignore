@@ -29,6 +29,8 @@
 .pub/
 build/
 
+Flutter.podspec
+
 # Android related
 **/android/**/gradle-wrapper.jar
 **/android/.gradle
@@ -37,6 +39,12 @@ build/
 **/android/gradlew.bat
 **/android/local.properties
 **/android/**/GeneratedPluginRegistrant.java
+
+**/android/app/release/output-metadata.json
+
+# Android build files
+*.aab
+*.apk
 
 # iOS/XCode related
 **/ios/**/*.mode1v3
@@ -71,3 +79,13 @@ build/
 !**/ios/**/default.pbxuser
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
+
+# iOS build files
+*.ipa
+ios/Runner.app.*.zip
+
+# Fastlane related files
+**/fastlane/screenshots/
+**/fastlane/Preview.html
+**/fastlane/report.xml
+

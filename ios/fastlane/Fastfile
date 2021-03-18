@@ -20,7 +20,7 @@ platform :ios do
   lane :beta do
     changelog = prompt(text: "Changelog: ")
     build_app(workspace: "Runner.xcworkspace", scheme: "Runner")
-    capture_screenshots
+#    capture_screenshots
     upload_to_testflight(skip_waiting_for_build_processing: true, changelog: changelog)
   end
 end

@@ -5,6 +5,7 @@ import '../graphqlHandler.dart';
 import '../localStorageHandler.dart';
 import '../locator.dart';
 import '../user.dart';
+import 'accountForm.dart';
 
 class SignInScreen extends StatefulWidget {
   final Function(String text, {Color backgroundColor}) showSnackbar;
@@ -23,6 +24,9 @@ class _SignInScreenState extends State<SignInScreen> {
   GraphQLHandler graphQLHandler = GraphQLHandler();
 
   var localStorageHandler = locator<LocalStorageHandler>();
+
+  GlobalKey<FormState> _signupFormKey = GlobalKey<FormState>();
+  GlobalKey<FormState> _loginFormKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -81,96 +85,64 @@ class _SignInScreenState extends State<SignInScreen> {
             children: [
               Container(
                 padding: EdgeInsets.all(16),
-                child: Column(children: <Widget>[
-                  AutofillGroup(
-                    child: Column(
-                      children: [
-                        TextField(
-                          decoration: InputDecoration(
-                            labelText: 'Email',
-                          ),
-                          controller: _emailController,
-                          autofillHints: const <String>[AutofillHints.email],
-                        ),
-                        TextField(
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                          ),
-                          controller: _passwordController,
-                          obscureText: true,
-                          autofillHints: const <String>[AutofillHints.password],
-                        ),
-                        TextField(
-                          decoration: InputDecoration(
-                            labelText: 'Name',
-                          ),
-                          controller: _nameController,
-                          autofillHints: const <String>[AutofillHints.name],
-                        ),
-                      ],
-                    ),
+                child: SingleChildScrollView(
+                    child: Column(children: <Widget>[
+                  AccountForm(
+                    formKey: _signupFormKey,
+                    emailController: _emailController,
+                    passwordController: _passwordController,
+                    nameController: _nameController,
                   ),
                   Padding(
                     padding: EdgeInsets.only(top: 48),
                     child: ElevatedButton(
                         child: Text('Sign Up'),
                         onPressed: () async {
-                          setState(() {
-                            _isLoading = true;
-                          });
-                          Map<String, dynamic> user =
-                              await graphQLHandler.signUp(
-                                  _emailController.text,
-                                  _passwordController.text,
-                                  _nameController.text);
-                          _handleUserResult(user, context);
+                          if (_signupFormKey.currentState.validate()) {
+                            setState(() {
+                              _isLoading = true;
+                            });
+                            Map<String, dynamic> user =
+                                await graphQLHandler.signUp(
+                                    _emailController.text,
+                                    _passwordController.text,
+                                    _nameController.text);
+                            _handleUserResult(user, context);
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                             primary: Colors.pinkAccent)),
                   )
-                ], mainAxisSize: MainAxisSize.min),
+                ], mainAxisSize: MainAxisSize.min)),
               ),
               Container(
                 padding: EdgeInsets.all(16),
-                child: Column(children: <Widget>[
-                  AutofillGroup(
-                    child: Column(
-                      children: [
-                        TextField(
-                          decoration: InputDecoration(
-                            labelText: 'Email',
-                          ),
-                          controller: _emailController,
-                          autofillHints: const <String>[AutofillHints.email],
-                        ),
-                        TextField(
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                          ),
-                          controller: _passwordController,
-                          obscureText: true,
-                          autofillHints: const <String>[AutofillHints.password],
-                        )
-                      ],
-                    ),
-                  ),
+                child: SingleChildScrollView(
+                    child: Column(children: <Widget>[
+                  AccountForm(
+                      formKey: _loginFormKey,
+                      emailController: _emailController,
+                      passwordController: _passwordController),
                   Padding(
                     padding: EdgeInsets.only(top: 48),
                     child: ElevatedButton(
                       child: Text('Login'),
                       onPressed: () async {
-                        setState(() {
-                          _isLoading = true;
-                        });
-                        Map<String, dynamic> user = await graphQLHandler.login(
-                            _emailController.text, _passwordController.text);
-                        _handleUserResult(user, context);
+                        if (_loginFormKey.currentState.validate()) {
+                          setState(() {
+                            _isLoading = true;
+                          });
+                          Map<String, dynamic> user =
+                              await graphQLHandler.login(_emailController.text,
+                                  _passwordController.text);
+                          _handleUserResult(user, context);
+                        }
                       },
                       style:
                           ElevatedButton.styleFrom(primary: Colors.pinkAccent),
                     ),
                   )
-                ], mainAxisSize: MainAxisSize.min),
+                ], mainAxisSize: MainAxisSize.min)),
               ),
             ],
           ),

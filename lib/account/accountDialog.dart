@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_realtime_detection/account/collectedStickerList.dart';
 import 'package:flutter_realtime_detection/account/signInScreen.dart';
+import 'package:flutter_realtime_detection/models/User.dart';
 import 'package:provider/provider.dart';
 
 import '../graphqlHandler.dart';
 
 import '../localStorageHandler.dart';
 import '../locator.dart';
-import '../user.dart';
 
 class AccountDialog extends StatefulWidget {
   final Function(String text, {Color backgroundColor}) showSnackbar;
@@ -44,28 +44,28 @@ class _AccountDialogState extends State<AccountDialog> {
 
   @override
   Widget build(BuildContext context) {
-    Map<String, dynamic> user =
-        Provider.of<User>(context, listen: true).getUser();
+    User user =
+        Provider.of<LocalUser>(context, listen: true).getUser();
 
-    if (user == null || user.isEmpty) {
+    if (user == null) {
       return SignInScreen(widget.showSnackbar);
     } else {
       return Container(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Column(children: <Widget>[
             Text(
-              user['name'],
+              user.name,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             if (_collectedStickers != null) CStickerList(_collectedStickers),
             TextButton(
-              child: Text('Sign Out'),
+              child: const Text('Sign Out'),
               onPressed: () {
                 localStorageHandler.removeToken();
 
-                Provider.of<User>(context, listen: false)
-                    .setUser(new Map<String, dynamic>.from({}));
+                Provider.of<LocalUser>(context, listen: false)
+                    .setUser(null);
 
                 widget.showSnackbar("Logged out.");
                 Navigator.of(context).pop();

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_realtime_detection/models/AuthPayload.dart';
 import 'package:flutter_realtime_detection/models/Sticker.dart';
 import 'package:flutter_realtime_detection/models/StickerList.dart';
 import 'package:http/http.dart';
@@ -9,6 +10,7 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 
 import 'localStorageHandler.dart';
 import 'locator.dart';
+import 'models/User.dart';
 
 class GraphQLHandler {
   GraphQLClient _client;
@@ -128,12 +130,13 @@ class GraphQLHandler {
     }
   }
 
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<User> login(String email, String password) async {
     const loginMutation = r"""
       mutation ($email: String!, $password: String!) { 
         login(email: $email, password: $password) {
           token
           user {
+            id
             name
             email
           }
@@ -146,29 +149,27 @@ class GraphQLHandler {
       variables: {"email": email, "password": password},
     );
 
-    var results = await _client.mutate(opts);
-    debugPrint("LOGIN RESULTS" + results.toString());
+    QueryResult results = await _client.mutate(opts);
 
     if (!results.hasException) {
-      var data = results.data['login'];
-      debugPrint("Data" + data.toString());
-      debugPrint("Token" + data['token']);
-      _token = data['token'];
+      AuthPayload authPayload = AuthPayload.fromJson(results.data['login']);
+      _token = authPayload.token;
       _localStorageHandler.token = _token;
 
-      return data['user'];
+      return authPayload.user;
     } else {
-      return const {};
+      return null;
     }
   }
 
-  Future<Map<String, dynamic>> signUp(
+  Future<User> signUp(
       String email, String password, String name) async {
     const loginMutation = r"""
       mutation ($email: String!, $password: String!, $name: String!) { 
         signup(email: $email, password: $password, name: $name) {
           token
           user {
+            id
             name
             email
           }
@@ -186,13 +187,13 @@ class GraphQLHandler {
     debugPrint(results.toString());
 
     if (!results.hasException) {
-      var data = results.data['signup'];
-      _token = data['token'];
+      AuthPayload authPayload = AuthPayload.fromJson(results.data['signup']);
+      _token = authPayload.token;
       _localStorageHandler.token = _token;
 
-      return data['user'];
+      return authPayload.user;
     } else {
-      return const {};
+      return null;
     }
   }
 

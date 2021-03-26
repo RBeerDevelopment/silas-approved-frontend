@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'models/User.dart';
+
 class LocalStorageHandler {
 
   static LocalStorageHandler _instance;
@@ -30,8 +32,13 @@ class LocalStorageHandler {
     _saveStringToDisk(TokenKey, t);
   }
 
-  set user(Map<String, dynamic> u) {
-    _saveStringToDisk(UserKey, json.encode(u));
+  set user(User u) {
+    if(u != null) {
+      _saveStringToDisk(UserKey, userToJson(u));
+    } else {
+      removeUser();
+    }
+
   }
 
   void removeUser() {
@@ -47,11 +54,11 @@ class LocalStorageHandler {
   }
 
 
-  Map<String, dynamic> get user {
+  User get user {
     var userJson = _getFromDisk(UserKey);
     if (userJson == null) return null;
 
-    return json.decode(userJson);
+    return userFromJson(userJson);
   }
 
   dynamic _getFromDisk(String key) {

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_realtime_detection/models/User.dart';
 import 'package:provider/provider.dart';
 
 import '../graphqlHandler.dart';
 import '../localStorageHandler.dart';
 import '../locator.dart';
-import '../user.dart';
 import 'accountForm.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -46,9 +46,9 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  _handleUserResult(Map<String, dynamic> user, BuildContext context) {
-    if (user.isNotEmpty) {
-      Provider.of<User>(context, listen: false).setUser(user);
+  _handleUserResult(User user, BuildContext context) {
+    if (user != null) {
+      Provider.of<LocalUser>(context, listen: false).setUser(user);
       widget.showSnackbar("Logged in successfully.");
     } else {
       widget.showSnackbar("Login failed.", backgroundColor: Colors.red);
@@ -66,25 +66,25 @@ class _SignInScreenState extends State<SignInScreen> {
           height: 70.0,
           child: new Padding(
               padding: const EdgeInsets.all(5.0),
-              child: Center(child: CircularProgressIndicator())));
+              child: const Center(child: const CircularProgressIndicator())));
     } else {
       return DefaultTabController(
         length: 2,
         child: Scaffold(
           appBar: AppBar(
-            leading: new IconButton(icon: new Icon(null), onPressed: () {}),
-            bottom: TabBar(
+            leading: IconButton(icon: const Icon(null), onPressed: () {}),
+            bottom: const TabBar(
               tabs: [
-                Tab(text: 'Sign Up'),
-                Tab(text: 'Log In'),
+                const Tab(text: 'Sign Up'),
+                const Tab(text: 'Log In'),
               ],
             ),
-            title: Text('Account'),
+            title: const Text('Account'),
           ),
           body: TabBarView(
             children: [
               Container(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: SingleChildScrollView(
                     child: Column(children: <Widget>[
                   AccountForm(
@@ -94,15 +94,15 @@ class _SignInScreenState extends State<SignInScreen> {
                     nameController: _nameController,
                   ),
                   Padding(
-                    padding: EdgeInsets.only(top: 48),
+                    padding: const EdgeInsets.only(top: 48),
                     child: ElevatedButton(
-                        child: Text('Sign Up'),
+                        child: const Text('Sign Up'),
                         onPressed: () async {
                           if (_signupFormKey.currentState.validate()) {
                             setState(() {
                               _isLoading = true;
                             });
-                            Map<String, dynamic> user =
+                            User user =
                                 await graphQLHandler.signUp(
                                     _emailController.text,
                                     _passwordController.text,
@@ -116,7 +116,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 ], mainAxisSize: MainAxisSize.min)),
               ),
               Container(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: SingleChildScrollView(
                     child: Column(children: <Widget>[
                   AccountForm(
@@ -124,15 +124,15 @@ class _SignInScreenState extends State<SignInScreen> {
                       emailController: _emailController,
                       passwordController: _passwordController),
                   Padding(
-                    padding: EdgeInsets.only(top: 48),
+                    padding: const EdgeInsets.only(top: 48),
                     child: ElevatedButton(
-                      child: Text('Login'),
+                      child: const Text('Login'),
                       onPressed: () async {
                         if (_loginFormKey.currentState.validate()) {
                           setState(() {
                             _isLoading = true;
                           });
-                          Map<String, dynamic> user =
+                          User user =
                               await graphQLHandler.login(_emailController.text,
                                   _passwordController.text);
                           _handleUserResult(user, context);

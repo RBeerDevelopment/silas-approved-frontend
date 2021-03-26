@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:form_field_validator/form_field_validator.dart';
 
 import 'takeImage.dart';
 import '../graphqlHandler.dart';
@@ -22,6 +23,8 @@ class _AddStickerDialogState extends State<AddStickerDialog> {
   GraphQLHandler graphQLHandler = GraphQLHandler();
   TextEditingController _nameController;
   String _imagePath = "";
+  
+  final _nameFieldKey = GlobalKey<FormFieldState>();
 
   @override
   void initState() {
@@ -41,10 +44,19 @@ class _AddStickerDialogState extends State<AddStickerDialog> {
     });
   }
 
+  bool _isReadyToPost() {
+    return _nameFieldKey.currentState.validate() && _imagePath.isNotEmpty;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(children: <Widget>[
-      TextField(
+    return SingleChildScrollView(child: Column(children: <Widget>[
+      TextFormField(
+        key: _nameFieldKey,
+        validator: MultiValidator([
+          RequiredValidator(errorText: 'Please enter a name.'),
+          MaxLengthValidator(32, errorText: 'Name is too long.')
+        ]),
         decoration: InputDecoration(
           labelText: 'Location Name',
         ),
@@ -82,25 +94,28 @@ class _AddStickerDialogState extends State<AddStickerDialog> {
           TextButton(
             child: Text('Ok'),
             onPressed: () async {
-              Location _location = Location();
-              LocationData loc = await _location.getLocation();
+              if(_isReadyToPost()) {
+                Location _location = Location();
+                LocationData loc = await _location.getLocation();
 
-              bool result = await graphQLHandler.postSticker(
-                  context: context,
-                  name: _nameController.text,
-                  lat: loc.latitude,
-                  lng: loc.longitude,
-                  stickerImage: File(_imagePath));
-              if(result) {
-                widget.showSnackbar('Posted sticker (reload to show).');
-              } else {
-                widget.showSnackbar('Error posting sticker.', backgroundColor: Colors.red);
+                bool result = await graphQLHandler.postSticker(
+                    context: context,
+                    name: _nameController.text,
+                    lat: loc.latitude,
+                    lng: loc.longitude,
+                    stickerImage: File(_imagePath));
+                if (result) {
+                  widget.showSnackbar('Posted sticker.');
+                } else {
+                  widget.showSnackbar(
+                      'Error posting sticker.', backgroundColor: Colors.red);
+                }
+                Navigator.of(context).pop();
               }
-              Navigator.of(context).pop();
             },
           ),
         ],
       )
-    ], mainAxisSize: MainAxisSize.min);
+    ], mainAxisSize: MainAxisSize.min));
   }
 }

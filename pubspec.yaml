@@ -34,6 +34,8 @@ dependencies:
   provider: ^5.0.0
   get_it: ^6.0.0
 
+  form_field_validator: ^1.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_realtime_detection/models/Sticker.dart';
+import 'package:flutter_realtime_detection/models/StickerList.dart';
 import 'package:http/http.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
@@ -217,7 +219,7 @@ class GraphQLHandler {
     return !result.hasException;
   }
 
-  Future<List<dynamic>> getAllStickerLocations() async {
+  Future<StickerList> getAllStickerLocations() async {
     String allStickersQuery = """
       query AllStickers() {
         stickers {
@@ -236,19 +238,17 @@ class GraphQLHandler {
     """;
 
     var opts = QueryOptions(document: gql(allStickersQuery));
-    final stopwatch = Stopwatch()..start();
     var results = await _client.query(opts);
-    print('doSomething() executed in ${stopwatch.elapsed}');
 
     debugPrint(results.toString());
     if (!results.hasException) {
-      return results.data['stickers'];
+      return StickerList.fromJson(results.data);
     } else {
-      return const [];
+      return null;
     }
   }
 
-  void subscribeToStickers(Function(Map<String, dynamic>) callback) async {
+  void subscribeToStickers(Function(Sticker) callback) async {
     print("Subscribe to Stickers called");
 
     String stickerSubscription = """
@@ -272,8 +272,8 @@ class GraphQLHandler {
         .subscribe(SubscriptionOptions(document: gql(stickerSubscription)));
     subscription.listen(
       (event) {
-        print(event.data['newSticker']);
-        callback(event.data['newSticker']);
+        print(stickerFromJson(event.data['newSticker']));
+        callback(stickerFromJson(event.data['newSticker']));
       },
       onError: (t) {
         print("ON ERROR");

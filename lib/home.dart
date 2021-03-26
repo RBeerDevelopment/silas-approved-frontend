@@ -153,13 +153,6 @@ class _HomePageState extends State<HomePage> {
             onPressed: () {
               _showAccountDialog();
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh Stickers',
-            onPressed: () {
-              _fetchStickers();
-            },
           )
         ],
       ),

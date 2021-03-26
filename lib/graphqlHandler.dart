@@ -184,7 +184,7 @@ class GraphQLHandler {
     debugPrint(results.toString());
 
     if (!results.hasException) {
-      var data = results.data['login'];
+      var data = results.data['signup'];
       _token = data['token'];
       _localStorageHandler.token = _token;
 

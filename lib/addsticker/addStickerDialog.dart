@@ -57,14 +57,14 @@ class _AddStickerDialogState extends State<AddStickerDialog> {
           RequiredValidator(errorText: 'Please enter a name.'),
           MaxLengthValidator(32, errorText: 'Name is too long.')
         ]),
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           labelText: 'Location Name',
         ),
         controller: _nameController,
       ),
       if (_imagePath != "")
         Padding(
-          padding: EdgeInsets.all(12),
+          padding: const EdgeInsets.all(12),
           child: Image.file(
             File(_imagePath),
             height: 300,
@@ -86,13 +86,13 @@ class _AddStickerDialogState extends State<AddStickerDialog> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: <Widget>[
           TextButton(
-            child: Text('Cancel'),
+            child: const Text('Cancel'),
             onPressed: () {
               Navigator.of(context).pop();
             },
           ),
           TextButton(
-            child: Text('Ok'),
+            child: const Text('Ok'),
             onPressed: () async {
               if(_isReadyToPost()) {
                 Location _location = Location();

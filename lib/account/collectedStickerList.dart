@@ -23,7 +23,7 @@ class CStickerList extends StatelessWidget {
           thickness: 2,
         ),
         Padding(
-            padding: EdgeInsets.only(top: 16),
+            padding: const EdgeInsets.only(top: 16),
             child: Column(
               children: [
                 Text(

@@ -1,12 +1,16 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_realtime_detection/models/AuthPayload.dart';
+import 'package:flutter_realtime_detection/models/Sticker.dart';
+import 'package:flutter_realtime_detection/models/StickerList.dart';
 import 'package:http/http.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 
 import 'localStorageHandler.dart';
 import 'locator.dart';
+import 'models/User.dart';
 
 class GraphQLHandler {
   GraphQLClient _client;
@@ -126,12 +130,13 @@ class GraphQLHandler {
     }
   }
 
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<User> login(String email, String password) async {
     const loginMutation = r"""
       mutation ($email: String!, $password: String!) { 
         login(email: $email, password: $password) {
           token
           user {
+            id
             name
             email
           }
@@ -144,29 +149,27 @@ class GraphQLHandler {
       variables: {"email": email, "password": password},
     );
 
-    var results = await _client.mutate(opts);
-    debugPrint("LOGIN RESULTS" + results.toString());
+    QueryResult results = await _client.mutate(opts);
 
     if (!results.hasException) {
-      var data = results.data['login'];
-      debugPrint("Data" + data.toString());
-      debugPrint("Token" + data['token']);
-      _token = data['token'];
+      AuthPayload authPayload = AuthPayload.fromJson(results.data['login']);
+      _token = authPayload.token;
       _localStorageHandler.token = _token;
 
-      return data['user'];
+      return authPayload.user;
     } else {
-      return const {};
+      return null;
     }
   }
 
-  Future<Map<String, dynamic>> signUp(
+  Future<User> signUp(
       String email, String password, String name) async {
     const loginMutation = r"""
       mutation ($email: String!, $password: String!, $name: String!) { 
         signup(email: $email, password: $password, name: $name) {
           token
           user {
+            id
             name
             email
           }
@@ -184,13 +187,13 @@ class GraphQLHandler {
     debugPrint(results.toString());
 
     if (!results.hasException) {
-      var data = results.data['signup'];
-      _token = data['token'];
+      AuthPayload authPayload = AuthPayload.fromJson(results.data['signup']);
+      _token = authPayload.token;
       _localStorageHandler.token = _token;
 
-      return data['user'];
+      return authPayload.user;
     } else {
-      return const {};
+      return null;
     }
   }
 
@@ -217,7 +220,7 @@ class GraphQLHandler {
     return !result.hasException;
   }
 
-  Future<List<dynamic>> getAllStickerLocations() async {
+  Future<StickerList> getAllStickerLocations() async {
     String allStickersQuery = """
       query AllStickers() {
         stickers {
@@ -236,19 +239,17 @@ class GraphQLHandler {
     """;
 
     var opts = QueryOptions(document: gql(allStickersQuery));
-    final stopwatch = Stopwatch()..start();
     var results = await _client.query(opts);
-    print('doSomething() executed in ${stopwatch.elapsed}');
 
     debugPrint(results.toString());
     if (!results.hasException) {
-      return results.data['stickers'];
+      return StickerList.fromJson(results.data);
     } else {
-      return const [];
+      return null;
     }
   }
 
-  void subscribeToStickers(Function(Map<String, dynamic>) callback) async {
+  void subscribeToStickers(Function(Sticker) callback) async {
     print("Subscribe to Stickers called");
 
     String stickerSubscription = """
@@ -272,8 +273,8 @@ class GraphQLHandler {
         .subscribe(SubscriptionOptions(document: gql(stickerSubscription)));
     subscription.listen(
       (event) {
-        print(event.data['newSticker']);
-        callback(event.data['newSticker']);
+        print(stickerFromJson(event.data['newSticker']));
+        callback(stickerFromJson(event.data['newSticker']));
       },
       onError: (t) {
         print("ON ERROR");

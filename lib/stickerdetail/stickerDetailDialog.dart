@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_realtime_detection/models/Sticker.dart';
 import 'package:flutter_realtime_detection/stickerdetail/scanner.dart';
-import 'package:location/location.dart';
+import 'package:location/location.dart' as LocationLib;
 import 'package:camera/camera.dart';
 
 import 'package:flutter_realtime_detection/utils.dart';
 
 class StickerDetailDialog extends StatefulWidget {
-  final Map<String, dynamic> sticker;
-  final Location location;
+  final Sticker sticker;
+  final LocationLib.Location location;
   final List<CameraDescription> cameras;
   final Function scannedSticker;
 
@@ -28,12 +29,12 @@ class _StickerDetailDialogState extends State<StickerDetailDialog> {
     super.initState();
 
     _calcIsInRange(
-        widget.sticker['location']['lat'], widget.sticker['location']['lng']);
+        widget.sticker.location.lat, widget.sticker.location.lng);
   }
 
   Future<Null> _calcIsInRange(lat, lng) async {
     debugPrint("isInRange() called");
-    LocationData lData = await widget.location.getLocation();
+    LocationLib.LocationData lData = await widget.location.getLocation();
 
     debugPrint(lData.latitude.toString() + " " + lData.longitude.toString());
     double distance = calcDistance(lData.latitude, lData.longitude, lat, lng);
@@ -44,7 +45,7 @@ class _StickerDetailDialogState extends State<StickerDetailDialog> {
   }
 
   void stickerRecognized() {
-    widget.scannedSticker(widget.sticker['id'], widget.sticker['name']);
+    widget.scannedSticker(widget.sticker.id, widget.sticker.name);
     Navigator.of(context).pop();
   }
 
@@ -53,12 +54,12 @@ class _StickerDetailDialogState extends State<StickerDetailDialog> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Text('Creator: ${widget.sticker['createdBy']['name']}'),
+        Text('Creator: ${widget.sticker.createdBy.name}'),
         Padding(
           padding: EdgeInsets.all(8),
-          child: (widget.sticker['imageUrl'] as String).isNotEmpty
+          child: widget.sticker.imageUrl.isNotEmpty
               ? Image.network(
-                  widget.sticker['imageUrl'],
+                  widget.sticker.imageUrl,
                   height: 200,
                   width: 200,
                   fit: BoxFit.fitWidth,
@@ -66,14 +67,8 @@ class _StickerDetailDialogState extends State<StickerDetailDialog> {
               : Image.asset('assets/silas-approved.png',
                   height: 200, width: 200, fit: BoxFit.fitWidth),
         ),
-        // ElevatedButton.icon(
-        //     onPressed: () {
-        //       print("${widget.sticker['location']['lat']}, ${widget.sticker['location']['lng']}");
-        //       MapsLauncher.launchCoordinates(widget.sticker['location']['lat'], widget.sticker['location']['lng']);
-        //     },
-        //     icon: const Icon(Icons.map_rounded),
-        //     label: Text('Open in Maps')),
-        ElevatedButton.icon(
+        if (_isInRange)
+          ElevatedButton.icon(
             onPressed: () {
               Navigator.push(
                   context,

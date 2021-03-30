@@ -4,7 +4,6 @@ import 'package:camera/camera.dart';
 import 'package:flutter_realtime_detection/locator.dart';
 import 'package:provider/provider.dart';
 import 'home.dart';
-import 'user.dart';
 
 List<CameraDescription> cameras;
 
@@ -24,7 +23,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
         providers: [
-          ChangeNotifierProvider.value(value: User()),
+          ChangeNotifierProvider.value(value: LocalUser()),
         ],
         child: MaterialApp(
           title: 'Silas Approved',

@@ -7,8 +7,11 @@ import 'package:flutter_realtime_detection/addsticker/addStickerDialog.dart';
 import 'package:flutter_realtime_detection/graphqlHandler.dart';
 import 'package:flutter_realtime_detection/stickerdetail/stickerDetailDialog.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:location/location.dart';
+import 'package:location/location.dart' as LocationLib;
 import 'package:location_permissions/location_permissions.dart';
+
+import 'models/Sticker.dart';
+import 'models/StickerList.dart';
 
 class HomePage extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -27,9 +30,9 @@ class _HomePageState extends State<HomePage> {
 
   GraphQLHandler _graphQLHandler = GraphQLHandler();
 
-  var _data = [];
-  Location _location;
-  LocationData _myLocation;
+  StickerList _data;
+  LocationLib.Location _location;
+  LocationLib.LocationData _myLocation;
 
   Completer<GoogleMapController> _controller = Completer();
 
@@ -38,7 +41,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<Null> _setupLocation() async {
     await LocationPermissions().requestPermissions();
-    _location = Location();
+    _location = LocationLib.Location();
     _myLocation = await _location.getLocation();
   }
 
@@ -76,7 +79,7 @@ class _HomePageState extends State<HomePage> {
     _graphQLHandler.subscribeToStickers(_addStickerToMap);
   }
 
-  void _addStickerToMap(Map<String, dynamic> sticker) {
+  void _addStickerToMap(Sticker sticker) {
     print("add sticker called with");
     print(sticker);
 
@@ -96,16 +99,16 @@ class _HomePageState extends State<HomePage> {
     }
   }
   
-  Marker _createMarker(Map<String, dynamic> sticker) {
+  Marker _createMarker(Sticker sticker) {
     return Marker(
-        markerId: MarkerId(sticker['id']),
+        markerId: MarkerId(sticker.id),
         position:
-        LatLng(sticker['location']['lat'].toDouble(), sticker['location']['lng'].toDouble()),
+        LatLng(sticker.location.lat.toDouble(), sticker.location.lng.toDouble()),
         onTap: () {
           showDialog(
               context: context,
               builder: (_) => AlertDialog(
-                title: Text(sticker['name']),
+                title: Text(sticker.name),
                 content: StickerDetailDialog(
                     sticker, _location, widget.cameras, scannedSticker, _showSnackbarWithText),
               ));
@@ -113,7 +116,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _setupMarkers() {
-    final Set<Marker> newMarkers = _data.map((sticker) {
+    final Set<Marker> newMarkers = _data.stickers.map((sticker) {
       return _createMarker(sticker);
     }).toSet();
 
@@ -174,7 +177,7 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddStickerDialog,
         // backgroundColor: Colors.blue.shade500,
-        child: Icon(Icons.add_a_photo),
+        child: const Icon(Icons.add_a_photo),
       ),
     );
   }
